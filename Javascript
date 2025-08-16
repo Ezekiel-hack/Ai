@@ -1,0 +1,94 @@
+import { useState, useEffect } from 'react';
+import '../public/styles.css';
+
+export default function Home() {
+  const [loading, setLoading] = useState(true);
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [chat, setChat] = useState([]);
+  const [mode, setMode] = useState('artistic');
+  const [bookmarks, setBookmarks] = useState([]);
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 5000);
+    const saved = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    setBookmarks(saved);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const ask = async () => {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, mode, chat, language })
+    });
+    const data = await res.json();
+    setChat([...chat, { question, answer: data.answer }]);
+    setAnswer(data.answer);
+    setQuestion('');
+  };
+
+  const bookmarkAnswer = (ans) => {
+    const updated = [...bookmarks, ans];
+    setBookmarks(updated);
+    localStorage.setItem('bookmarks', JSON.stringify(updated));
+  };
+
+  if (loading) {
+    return (
+      <div className="landing">
+        <svg viewBox="0 0 800 600">
+          <rect width="800" height="600" fill="#0b1020" />
+          <circle cx="400" cy="300" r="200" fill="#ffd166" fillOpacity="0.2" />
+        </svg>
+        <div className="poem">“Words are keys; unlock what’s hidden within.”</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 40 }}>
+      <audio autoPlay loop src="/bg.mp3" />
+      <h1>Ask Me Anything 🤖</h1>
+      <div>
+        <label>Mode: </label>
+        <select value={mode} onChange={e => setMode(e.target.value)}>
+          <option value="artistic">Artistic</option>
+          <option value="practical">Practical</option>
+          <option value="steps">Step-by-Step</option>
+        </select>
+      </div>
+      <div>
+        <label>Language: </label>
+        <select value={language} onChange={e => setLanguage(e.target.value)}>
+          <option value="en">English</option>
+          <option value="sw">Swahili</option>
+          <option value="fr">French</option>
+        </select>
+      </div>
+      <input
+        value={question}
+        onChange={e => setQuestion(e.target.value)}
+        placeholder="Type your question..."
+        style={{ width: '60%', padding: '10px', marginTop: '10px' }}
+      />
+      <button onClick={ask} style={{ marginLeft: 10, padding: '10px 20px' }}>Ask</button>
+      {answer && (
+        <div className="answer">
+          <div>{answer}</div>
+          <div style={{ marginTop: 10 }}>
+            <span style={{ cursor: 'pointer' }} onClick={() => bookmarkAnswer(answer)}>⭐</span>
+            <span style={{ marginLeft: 10 }}>😊 😲 😢</span>
+          </div>
+        </div>
+      )}
+      {bookmarks.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h3>Bookmarked Answers</h3>
+          <ul>{bookmarks.map((b, i) => <li key={i}>{b}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  );
+} 
