@@ -1,0 +1,30 @@
+export default async function handler(req, res) {
+  const { question, mode, chat, language } = req.body;
+
+  let stylePrompt = '';
+  if (mode === 'artistic') stylePrompt = 'Answer poetically with vivid imagery';
+  if (mode === 'practical') stylePrompt = 'Answer concisely and practically';
+  if (mode === 'steps') stylePrompt = 'Provide a clear step-by-step guide';
+
+  const messages = [
+    { role: 'system', content: `Respond in ${language}. ${stylePrompt}` },
+    ...chat.map(c => ({ role: 'user', content: c.question })),
+    ...chat.map(c => ({ role: 'assistant', content: c.answer })),
+    { role: 'user', content: question }
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages
+    })
+  });
+
+  const data = await response.json();
+  res.status(200).json({ answer: data.choices[0].message.content });
+}
